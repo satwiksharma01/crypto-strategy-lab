@@ -1,0 +1,13 @@
+{
+  "name": "crypto-strategy-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Reviewable crypto spot strategy research with reproducible historical results.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "build": "node scripts/check-site.mjs"
+  }
+}

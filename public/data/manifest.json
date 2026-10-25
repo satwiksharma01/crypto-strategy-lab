@@ -1,0 +1,31 @@
+{
+  "schema": "crypto-strategy-lab/data/v1",
+  "interval": "1d",
+  "quoteAsset": "USDT",
+  "retrievedAt": "2026-10-25T06:31:33.161932+00:00",
+  "datasets": [
+    {
+      "symbol": "BTCUSDT",
+      "file": "./data/BTCUSDT-1d-2025.json",
+      "start": "2025-01-01",
+      "end": "2025-12-31",
+      "bars": 365,
+      "sha256": "0a60b3ef9b1b6941086ae8129b646aa73ac3b3ea21cb24971408683600f8606a",
+      "source": "https://github.com/binance/binance-public-data"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "file": "./data/ETHUSDT-1d-2025.json",
+      "start": "2025-01-01",
+      "end": "2025-12-31",
+      "bars": 365,
+      "sha256": "e0369ba476e15df8c07a86f7288516f055fc068902551991a04e8c93d7f952f2",
+      "source": "https://github.com/binance/binance-public-data"
+    }
+  ],
+  "limitations": [
+    "A fixed historical snapshot, not a live price feed.",
+    "Binance spot USDT quotes; USDT/USD equivalence is not guaranteed.",
+    "Checksums verify downloaded archive identity, not independent price accuracy."
+  ]
+}

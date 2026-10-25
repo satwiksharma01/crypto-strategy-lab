@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101619">
+  <meta name="description" content="Turn a crypto strategy into explicit rules and a reproducible historical backtest.">
+  <title>Crypto Strategy Lab — Research workspace</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to workspace</a>
+  <aside class="sidebar" aria-label="Workspace navigation">
+    <a class="brand" href="#research" aria-label="Crypto Strategy Lab home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>CRYPTO<br>STRATEGY LAB<span class="brand-sub">An open research workspace</span></span></a>
+    <p class="nav-label">WORKSPACE</p>
+    <nav aria-label="Primary">
+      <button class="nav-item active" id="nav-research" aria-current="page" type="button"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 16V4M3 16h14M6 12l3-4 3 2 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Research<span class="nav-shortcut" aria-hidden="true">01</span></button>
+      <button class="nav-item" id="nav-methodology" type="button"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 3h9a1 1 0 0 1 1 1v13H6a2 2 0 0 1-2-2V4a1 1 0 0 1 1-1Zm-1 11a2 2 0 0 1 2-2h9M7 6h5M7 9h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Methodology<span class="nav-shortcut" aria-hidden="true">02</span></button>
+    </nav>
+    <div class="sidebar-note"><span class="tiny-cross" aria-hidden="true">+</span><p>Good research starts with<br>visible assumptions.</p><span>Historical analysis only.<br>No live orders or wallet connection.</span></div>
+    <div class="sidebar-footer"><span class="status-dot" aria-hidden="true"></span>Runs locally in your browser</div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar"><span><span class="topbar-muted">Workspace</span><span class="breadcrumb-slash">/</span><span id="page-crumb">Research</span></span><span class="topbar-right"><span class="status-dot" aria-hidden="true"></span>Historical research<span class="version">v0.1</span></span></header>
+    <main id="main" tabindex="-1">
+      <section id="research-view" aria-labelledby="research-title">
+        <div class="page-heading"><div><p class="eyebrow">FROM THESIS TO EVIDENCE</p><h1 id="research-title">Test the idea. Inspect the result.</h1><p class="page-description">A small strategy lab for questions worth testing.</p></div><span class="heading-tag">BTC + ETH <span>·</span> DAILY CANDLES</span></div>
+
+        <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+        <div class="research-grid">
+          <section class="strategy-panel panel" aria-labelledby="strategy-title">
+            <div class="panel-heading"><div><p class="eyebrow">01 / STRATEGY</p><h2 id="strategy-title">What’s your hypothesis?</h2></div><span class="draft-tag" id="draft-label">DRAFT</span></div>
+            <form id="strategy-form">
+              <label class="field-label" for="prompt">Describe your entry and exit rules</label>
+              <textarea id="prompt" name="prompt" rows="5" maxlength="1000" required spellcheck="false">Buy BTC when its 10-day moving average crosses above its 30-day moving average; sell on the reverse cross.</textarea>
+              <p class="field-help">Use an example; edit its asset, periods, or thresholds.<br>Deterministic rule parser · no AI model connected.</p>
+              <div class="examples" aria-label="Example strategies"><span>TRY A RULE</span><button type="button" data-example="sma">MA crossover <span aria-hidden="true">↗</span></button><button type="button" data-example="rsi">RSI thresholds <span aria-hidden="true">↗</span></button><button type="button" data-example="hold">Buy &amp; hold <span aria-hidden="true">↗</span></button></div>
+
+              <div class="settings-heading"><h3>Test conditions</h3><span>Spot · Long only</span></div>
+              <div class="field-grid">
+                <div class="field"><label for="symbol">Market</label><select id="symbol" name="symbol"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option></select></div>
+                <div class="field"><label for="capital">Starting capital <span>USDT</span></label><input id="capital" name="capital" type="number" min="100" max="1000000" step="0.01" value="10000" required></div>
+                <div class="field"><label for="start-date">Start date</label><input id="start-date" name="start-date" type="date" required></div>
+                <div class="field"><label for="end-date">End date</label><input id="end-date" name="end-date" type="date" required></div>
+                <div class="field"><label for="fee">Trading fee <span>bps / side</span></label><input id="fee" name="fee" type="number" min="0" max="100" step="1" value="10" required></div>
+                <div class="field"><label for="slippage">Slippage <span>bps / side</span></label><input id="slippage" name="slippage" type="number" min="0" max="100" step="1" value="5" required></div>
+                <div class="field full-width"><label for="allocation">Capital per entry <span>% of available cash</span></label><input id="allocation" name="allocation" type="number" min="1" max="100" step="1" value="100" required></div>
+              </div>
+              <div class="data-status" id="data-status" role="status"><span class="status-dot loading" aria-hidden="true"></span><span id="data-status-text">Loading historical dataset…</span><button id="retry-data" type="button" hidden>Retry</button></div>
+              <button id="review-button" type="submit" class="button primary" disabled>Review strategy <span aria-hidden="true">→</span></button>
+              <div id="form-error" class="inline-error" role="alert" hidden></div>
+            </form>
+            <section class="review-box" id="review-box" aria-labelledby="review-title" hidden>
+              <div class="review-heading"><h3 id="review-title">Review the exact rules</h3><span>READY TO TEST</span></div>
+              <p id="rule-summary"></p><dl id="rule-details" class="rule-details"></dl>
+              <p class="field-help">Indicator signals use completed closes and fill at the next daily open. Buy-and-hold enters at the first test open. Costs apply to both sides.</p>
+              <button class="button primary" id="run-button" type="button">Run backtest <span aria-hidden="true">↗</span></button>
+            </section>
+          </section>
+
+          <div class="report-column">
+            <section class="report-panel panel" aria-labelledby="report-title">
+              <div class="panel-heading"><div><p class="eyebrow">02 / EVIDENCE</p><h2 id="report-title">Backtest report</h2></div><span class="report-status" id="report-status">AWAITING A TEST</span></div>
+              <div id="empty-report" class="empty-report"><div class="empty-chart" aria-hidden="true"><span></span><span></span><span></span><span></span><div class="empty-chart-mark">↗</div></div><p class="empty-eyebrow">IDEAS AREN’T RESULTS</p><h3>Let the data make its case.</h3><p>Review your rules, then run a backtest to see<br class="desktop-break"> returns, drawdowns, and every completed trade.</p><div class="empty-steps"><span><b>1</b> Describe</span><i aria-hidden="true">→</i><span><b>2</b> Review</span><i aria-hidden="true">→</i><span><b>3</b> Test</span></div></div>
+              <div id="report-results" hidden>
+                <div class="result-context"><strong id="result-name"></strong><span id="result-period"></span></div>
+                <div class="metrics" id="metrics"></div>
+                <div class="report-tabs" role="tablist" aria-label="Report views"><button id="tab-equity" role="tab" aria-selected="true" aria-controls="view-equity" tabindex="0" type="button">Equity curve</button><button id="tab-trades" role="tab" aria-selected="false" aria-controls="view-trades" tabindex="-1" type="button">Trades <span id="trade-count"></span></button><button id="tab-evidence" role="tab" aria-selected="false" aria-controls="view-evidence" tabindex="-1" type="button">Evidence</button></div>
+                <div id="view-equity" class="report-view" role="tabpanel" aria-labelledby="tab-equity"><div class="chart-legend"><span><i class="legend-strategy"></i>Strategy, after costs</span><span><i class="legend-benchmark"></i>Buy &amp; hold, after costs</span><span>USDT</span></div><div id="equity-chart" class="chart-wrap"></div><p class="chart-footnote">Completed historical run. Past results do not establish future performance.</p></div>
+                <div id="view-trades" class="report-view" role="tabpanel" aria-labelledby="tab-trades" hidden><div class="table-scroll" tabindex="0" aria-label="Completed trades, scroll horizontally"><table><caption class="sr-only">Completed trades including fees</caption><thead><tr><th scope="col">Entry / exit</th><th scope="col">Entry price</th><th scope="col">Exit price</th><th scope="col">Fees</th><th scope="col">Net P&amp;L</th></tr></thead><tbody id="trade-body"></tbody></table></div><p class="chart-footnote" id="trades-note"></p></div>
+                <div id="view-evidence" class="report-view evidence-view" role="tabpanel" aria-labelledby="tab-evidence" hidden><h3>Reproduce this run</h3><dl id="evidence-details" class="evidence-details"></dl><h3>Execution assumptions</h3><ul id="assumptions"></ul></div>
+                <div class="report-actions"><button id="share-button" type="button" class="button secondary">Copy remix link <span aria-hidden="true">↗</span></button><button id="export-button" type="button" class="text-button">Export evidence <span aria-hidden="true">↓</span></button></div>
+                <div id="share-fallback" class="share-fallback" hidden><label for="share-url">Copy this draft link</label><input type="text" id="share-url" readonly></div>
+                <p class="share-help">Remix links carry the rules and settings. Recipients rerun the test in their browser.</p>
+              </div>
+            </section>
+            <section class="research-note" aria-labelledby="research-note-title"><span class="note-icon" aria-hidden="true">✳</span><div><h2 id="research-note-title">A result you can question.</h2><p>Every test exposes its rules, execution costs, and data fingerprint. No hidden optimization. No live trading.</p><button id="methodology-link" class="text-button" type="button">Read the methodology <span aria-hidden="true">↗</span></button></div></section>
+          </div>
+        </div>
+        <footer class="workspace-footer"><span>Built for research. Decisions remain yours.</span><span>Explicit rules. Reproducible results.</span></footer>
+      </section>
+
+      <section id="methodology-view" aria-labelledby="methodology-title" hidden>
+        <div class="page-heading"><div><p class="eyebrow">HOW THIS LAB WORKS</p><h1 id="methodology-title">Know what you’re testing.</h1><p class="page-description">The assumptions are part of the result.</p></div></div>
+        <div class="methodology-content panel"><section><span class="method-number">01</span><div><h2>Explicit, supported rules</h2><p>The first release recognizes moving average crossovers, RSI entry and exit thresholds, and buy-and-hold for BTC / USDT and ETH / USDT. A deterministic parser translates the prompt; no language model writes or executes code. Review the interpreted rules before every run.</p></div></section><section><span class="method-number">02</span><div><h2>Historical data with a fingerprint</h2><p>Tests use the bundled daily candle datasets. The Evidence tab records the source, date range, and SHA-256 fingerprint of the actual dataset. Changing data can change results; a remix link carries settings and requires a fresh run.</p></div></section><section><span class="method-number">03</span><div><h2>Signals now. Execution next bar.</h2><p>Indicators use completed daily closes. A signal fills at the next available daily open. Fees apply to each side; slippage moves the execution price against the trade. Positions are long only, use the selected fraction of cash, and close at the final test close. No leverage, shorts, or perpetual funding.</p></div></section><section><span class="method-number">04</span><div><h2>Count the costs and the losses</h2><p>Returns and trade wins are measured after fees. Drawdown measures the largest decline from a prior equity peak. Buy-and-hold provides a comparison with the same trading costs and capital allocation. A short period or a small number of trades provides limited evidence.</p></div></section><section><span class="method-number">05</span><div><h2>A test, not a forecast</h2><p>The simulation cannot reproduce order book liquidity, outages, market impact, taxes, or your actual fills. Trying many settings on the same period can overfit the past. This version does not optimize parameters, connect a wallet, place orders, or establish that a strategy will be profitable.</p></div></section><button type="button" id="back-research" class="button secondary">Back to research <span aria-hidden="true">→</span></button></div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
