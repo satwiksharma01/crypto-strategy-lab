@@ -17,7 +17,7 @@ npm test
 npm run build
 ```
 
-`public/` is the complete static site. `npm run build` verifies the assets, snapshot hashes, and real-data execution without bundling dependencies.
+`public/` is the static source. `npm run build` verifies the assets, snapshot hashes, and real-data execution, then copies the site to `dist/` without bundling dependencies.
 
 ## Supported rules
 

@@ -1,4 +1,4 @@
-import { readFile, access } from 'node:fs/promises';
+import { readFile, access, cp } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { runBacktest } from '../public/core/engine.mjs';
 
@@ -13,4 +13,5 @@ for(const dataset of manifest.datasets) {
     {initialCash:10000,feeBps:10,slippageBps:5,allocationPct:100,startDate:dataset.start,endDate:dataset.end});
   console.log(`${dataset.symbol}: verified ${dataset.bars} bars, ${result.metrics.tradeCount} trades, finite reconciled results.`);
 }
-console.log('Static build verified. Deploy public/; no bundle or runtime dependencies.');
+await cp(new URL('../public/',import.meta.url),new URL('../dist/',import.meta.url),{recursive:true});
+console.log('Static build verified and copied to dist/; no bundle or runtime dependencies.');
