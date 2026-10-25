@@ -2,7 +2,7 @@ import { readFile, access, cp } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { runBacktest } from '../public/core/engine.mjs';
 
-for(const file of ['index.html','styles.css','app.mjs','core/strategy.mjs','core/engine.mjs']) await access(new URL('../public/'+file,import.meta.url));
+for(const file of ['index.html','styles.css','app.mjs','core/strategy.mjs','core/engine.mjs','core/interpreter.mjs']) await access(new URL('../public/'+file,import.meta.url));
 const manifest=JSON.parse(await readFile(new URL('../public/data/manifest.json',import.meta.url),'utf8'));
 for(const dataset of manifest.datasets) {
   const bytes=await readFile(new URL('../public/'+dataset.file.slice(2),import.meta.url));

@@ -1,5 +1,6 @@
 import { parseStrategy, validateStrategy } from './core/strategy.mjs';
 import { runBacktest } from './core/engine.mjs';
+import { createAgentTask, parseAgentResult, interpretWithGemini, DEFAULT_GEMINI_MODEL } from './core/interpreter.mjs';
 
 const $ = id => document.getElementById(id);
 const examples = {
@@ -12,6 +13,7 @@ const money = value => new Intl.NumberFormat('en-US', { maximumFractionDigits: 2
 const percent = (value, signed = false) => `${signed && value > 0 ? '+' : ''}${(value * 100).toFixed(2)}%`;
 const date = value => new Date(value).toISOString().slice(0, 10);
 let manifest, dataset, datasetMeta, datasetHash, reviewed, lastRun, revision = 0, loadingRequest = 0;
+let interpretationRequest, agentTask;
 
 function node(tag, text, className) {
   const element = document.createElement(tag);
@@ -31,7 +33,16 @@ function formError(message = '') {
   $('form-error').hidden = !message;
 }
 
-function invalidate() {
+function invalidate(keepAgentTask = false) {
+  interpretationRequest?.abort();
+  interpretationRequest = null;
+  setInterpreting(false);
+  if (keepAgentTask !== true) {
+    agentTask = null;
+    $('agent-exchange').hidden = true;
+    $('agent-result').value = '';
+    $('agent-result-file').value = '';
+  }
   notice('');
   revision++;
   reviewed = null;
@@ -112,13 +123,46 @@ function addDefinition(list, title, value) {
 
 async function reviewStrategy(event) {
   event.preventDefault();
+  if (interpretationRequest) return;
+  invalidate();
   formError();
   if (!$('strategy-form').reportValidity() || !dataset) return;
+  const currentRevision = revision;
+  let request;
   try {
-    const spec = validateStrategy(parseStrategy($('prompt').value));
-    if (spec.symbol !== $('symbol').value) throw new Error(`The prompt names ${spec.symbol.replace('USDT', '')}. Choose that market or update your strategy text.`);
     if ($('start-date').value >= $('end-date').value) throw new Error('Choose an end date after the start date.');
-    reviewed = { spec, options: optionsFromForm(), revision };
+    if ($('interpreter').value === 'agent') {
+      agentTask = createAgentTask($('prompt').value, $('symbol').value);
+      $('agent-task-status').textContent = `Task ${agentTask.id}. Send the task to your local agent. Changes to the strategy or test settings require a new task.`;
+      $('agent-exchange').hidden = false;
+      $('download-agent-task').focus();
+      return;
+    }
+    let interpreted;
+    if ($('interpreter').value === 'gemini') {
+      request = new AbortController();
+      interpretationRequest = request;
+      setInterpreting(true);
+      interpreted = await interpretWithGemini({prompt: $('prompt').value, symbol: $('symbol').value, apiKey: $('gemini-key').value, model: $('gemini-model').value, signal: request.signal});
+      if (currentRevision !== revision || request.signal.aborted) return;
+      if (interpreted.status === 'reject') throw new Error(interpreted.issues.join(' '));
+    } else interpreted = { spec: parseStrategy($('prompt').value), provenance: { kind: 'rules', model: null } };
+    showReview(interpreted);
+  } catch (error) {
+    if (currentRevision !== revision || request?.signal.aborted) return;
+    formError(error.message);
+  } finally {
+    if (currentRevision === revision) {
+      interpretationRequest = null;
+      setInterpreting(false);
+    }
+  }
+}
+
+function showReview(interpreted) {
+    const spec = validateStrategy(interpreted.spec);
+    if (spec.symbol !== $('symbol').value) throw new Error(`The prompt names ${spec.symbol.replace('USDT', '')}. Choose that market or update your strategy text.`);
+    reviewed = { spec, options: optionsFromForm(), revision, interpretation: interpreted.provenance };
     $('rule-summary').textContent = spec.summary;
     $('rule-details').replaceChildren();
     addDefinition($('rule-details'), 'Market', `${spec.symbol.replace('USDT', '')} / USDT · 1 day`);
@@ -127,16 +171,55 @@ async function reviewStrategy(event) {
     if (spec.type === 'rsi') addDefinition($('rule-details'), 'Thresholds', `RSI(${spec.period}) below ${spec.entry}: enter; above ${spec.exit}: exit`);
     addDefinition($('rule-details'), 'Allocation', `${reviewed.options.allocationPct}% of available cash`);
     addDefinition($('rule-details'), 'Costs per side', `${reviewed.options.feeBps} bps fee + ${reviewed.options.slippageBps} bps slippage`);
+    addDefinition($('rule-details'), 'Interpreter', interpretationLabel(interpreted.provenance));
+    $('interpretation-warning').hidden = interpreted.provenance.kind === 'rules';
     $('review-box').hidden = false;
     $('draft-label').textContent = 'REVIEWED';
     $('draft-label').classList.add('reviewed');
     $('run-button').disabled = false;
     $('run-button').focus();
-  } catch (error) {
-    reviewed = null;
-    $('review-box').hidden = true;
-    formError(error.message);
-  }
+}
+
+function interpretationLabel(provenance) {
+  return provenance.kind === 'gemini' ? `Gemini · ${provenance.model}` : provenance.kind === 'agent' ? 'Your local agent · validated task result' : 'Deterministic supported-rule parser';
+}
+
+function setInterpreting(pending) {
+  $('strategy-form').setAttribute('aria-busy', String(pending));
+  $('review-button').disabled = pending || !dataset;
+  $('review-button').textContent = pending ? 'Interpreting with Gemini…' : $('interpreter').value === 'agent' ? 'Prepare local agent task →' : 'Review strategy →';
+  $('cancel-interpretation').hidden = !pending;
+}
+
+function updateConnection() {
+  $('gemini-settings').hidden = $('interpreter').value !== 'gemini';
+  $('agent-settings').hidden = $('interpreter').value !== 'agent';
+  if ($('interpreter').value !== 'gemini') $('gemini-key').value = '';
+  $('interpreter-help').textContent = $('interpreter').value === 'rules'
+    ? 'Use an example; edit its asset, periods, or thresholds. No external model request.'
+    : 'SMA crossovers, Wilder RSI thresholds, or buy-and-hold on daily BTC/ETH spot. Other conditions must be rejected; review every interpretation.';
+  invalidate();
+}
+
+function downloadJson(value, filename) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], {type: 'application/json'}));
+  const link = node('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function reviewAgentResult() {
+  invalidate(true);
+  try {
+    if (!agentTask) throw new Error('Prepare a new local agent task first.');
+    if (!$('strategy-form').reportValidity() || !dataset) return;
+    if ($('start-date').value >= $('end-date').value) throw new Error('Choose an end date after the start date.');
+    const interpreted = parseAgentResult($('agent-result').value, agentTask);
+    if (interpreted.status === 'reject') throw new Error(interpreted.issues.join(' '));
+    showReview(interpreted);
+  } catch (error) { formError(error.message); }
 }
 
 async function runReviewed() {
@@ -150,7 +233,7 @@ async function runReviewed() {
   try {
     if (current.revision !== revision) return;
     const result = runBacktest(dataset.candles, current.spec, current.options);
-    lastRun = { result, spec: current.spec, options: current.options, dataset: { symbol: dataset.symbol, interval: dataset.interval, source: dataset.source || datasetMeta.source, start: date(dataset.candles[0].time), end: date(dataset.candles.at(-1).time), bars: dataset.candles.length, sha256: datasetHash } };
+    lastRun = { result, spec: current.spec, options: current.options, interpretation: current.interpretation, dataset: { symbol: dataset.symbol, interval: dataset.interval, source: dataset.source || datasetMeta.source, start: date(dataset.candles[0].time), end: date(dataset.candles.at(-1).time), bars: dataset.candles.length, sha256: datasetHash } };
     renderReport(lastRun);
     notice('Backtest complete. Inspect the equity curve, completed trades, and execution assumptions.');
     if (matchMedia('(max-width: 1000px)').matches) $('report-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -261,7 +344,7 @@ function renderEvidence(run) {
   addDefinition(list, 'Snapshot', `${run.dataset.start} to ${run.dataset.end} · ${run.dataset.bars} bars`);
   addDefinition(list, 'Test period', `${date(run.result.period.start)} to ${date(run.result.period.end)}`);
   addDefinition(list, 'SHA-256', run.dataset.sha256);
-  addDefinition(list, 'Rule parser', 'Deterministic supported-rule parser; no connected AI model');
+  addDefinition(list, 'Interpreter', interpretationLabel(run.interpretation));
   addDefinition(list, 'Quote asset', 'USDT; equivalence to USD is not guaranteed');
   $('assumptions').replaceChildren(...run.result.assumptions.map(text => node('li', text)));
 }
@@ -356,6 +439,27 @@ function restoreDraft() {
 }
 
 $('strategy-form').addEventListener('submit', reviewStrategy);
+$('gemini-model').value = DEFAULT_GEMINI_MODEL;
+$('interpreter').addEventListener('change', updateConnection);
+for (const id of ['gemini-key', 'gemini-model']) $(id).addEventListener('input', invalidate);
+$('clear-key').addEventListener('click', () => { $('gemini-key').value = ''; invalidate(); $('gemini-key').focus(); });
+$('cancel-interpretation').addEventListener('click', () => { invalidate(); notice('Interpretation cancelled. A request already received by Google may still be billed.'); });
+$('download-agent-task').addEventListener('click', () => { if (agentTask) downloadJson(agentTask, `strategy-task-${agentTask.id}.json`); });
+$('agent-result').addEventListener('input', () => invalidate(true));
+$('review-agent-result').addEventListener('click', reviewAgentResult);
+$('agent-result-file').addEventListener('change', async () => {
+  invalidate(true);
+  const currentRevision = revision, file = $('agent-result-file').files[0];
+  if (!file) return;
+  try {
+    if (file.size > 16384) throw new Error('Agent result must be JSON under 16 KiB.');
+    const result = await file.text();
+    if (currentRevision !== revision) return;
+    $('agent-result').value = result;
+    reviewAgentResult();
+  } catch (error) { if (currentRevision === revision) formError(error.message); }
+});
+window.addEventListener('pagehide', () => { $('gemini-key').value = ''; interpretationRequest?.abort(); });
 $('run-button').addEventListener('click', runReviewed);
 $('retry-data').addEventListener('click', () => loadDataset());
 for (const id of controls) $(id).addEventListener('input', invalidate);

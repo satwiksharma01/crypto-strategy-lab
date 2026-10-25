@@ -4,7 +4,16 @@ The user authorized starting the product on 25 October 2026 and explicitly confi
 
 ## Deliverable
 
-A usable browser research workbench: supported English strategy → explicit rule review → deterministic daily spot backtest → equity, benchmark, net-of-fee trade ledger, provenance, JSON export, and remixable input URL. The first interpreter recognizes documented rule forms; it is not an LLM and must never be presented as model-powered interpretation. A model provider and spend limit remain needed for that integration.
+A usable browser research workbench: strategy → explicit rule review → deterministic daily spot backtest → equity, benchmark, net-of-fee trade ledger, provenance, JSON export, and remixable input URL. The free rule parser recognizes documented forms. The user confirmed on 26 October 2026 that users should bring their own API key or local Claude Code/Codex agent, with Gemini for development.
+
+## Connected interpretation
+
+- Gemini requests go directly from the browser to Google's fixed HTTPS endpoint with a user-entered key in a header. Keys stay in the current tab, never in storage, URLs, exports, reports, or deployment assets. The developer key is used only by a local check, never a public proxy or shared demo credential.
+- One explicit review click makes at most one provider request, with a timeout and bounded input/output. No background calls, automatic retries, or strategy optimization.
+- Model/agent output must match a versioned task/result contract and existing rule validation. Unsupported or ambiguous requests must reject with explanations. Human review remains required because schema validation cannot establish complete semantic fidelity.
+- Local agents use an MCP stdio bridge with supported-rule and fixed-data backtest tools. The browser exports a task and imports the matching result JSON; there is no unauthenticated local HTTP listener or arbitrary code execution.
+- Edits or provider changes cancel pending interpretation and invalidate previous reviews/results. Late responses cannot revive a stale review. Imported results are bound to a task UUID, prompt, and market.
+- Provenance records interpreter kind/model, not credentials. Remix links restore canonical rule inputs with the free parser; recipients need their own provider connection for fresh AI interpretation.
 
 ## Financial contract
 
@@ -20,7 +29,7 @@ A usable browser research workbench: supported English strategy → explicit rul
 
 ## Boundaries and implementation
 
-Dependency-free browser ES modules plus a Node built-in local server/test runner. No hosted generated-code execution or shared server credentials. Static hosting is suitable for this slice. Runs remain local; sharing a URL shares only strategy inputs. It is not a stored public report service.
+Dependency-free browser ES modules plus a Node built-in local server/test runner. The optional local MCP server uses the official SDK and Zod. No hosted generated-code execution or shared server credentials. Static hosting is suitable for this slice. Runs remain local; sharing a URL shares only strategy inputs. It is not a stored public report service.
 
 `public/core/strategy.mjs` owns rule validation; `public/core/engine.mjs` owns execution/accounting; `public/data/` contains versioned public market snapshots/provenance; the UI owns review and presentation. No upstream implementation code is copied in this slice.
 
@@ -28,4 +37,4 @@ Dependency-free browser ES modules plus a Node built-in local server/test runner
 
 `npm test`: independent accounting, timing, validation, benchmark, and data checks. `npm run build`: source/static asset checks. Browser QA: actual review/run/review-invalidation/export/remix, responsive layout, and no fabricated initial performance. Keep unsupported cases and limitations visible.
 
-The open-source GitHub destination, production model budget, final brand, accounts, paid tiers, and durable sharing are later decisions. A ready source folder is not a published GitHub repository.
+The open-source GitHub destination/license, final brand, accounts, paid tiers, and durable sharing are later decisions. Provider charges belong to each connected key's account; this app does not enforce an account-wide provider budget. A ready source folder is not a published GitHub repository.

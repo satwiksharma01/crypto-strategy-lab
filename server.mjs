@@ -14,7 +14,7 @@ const server=createServer(async(req,res)=>{
     const bytes=await readFile(file);
     res.writeHead(200,{'Content-Type':mime[extname(file)],'Content-Length':bytes.length,'Cache-Control':'no-store',
       'X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin',
-      'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"});
+      'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://generativelanguage.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"});
     res.end(req.method==='HEAD'?undefined:bytes);
   } catch {res.writeHead(404,{'Content-Type':'text/plain'}).end('Not found');}
 });

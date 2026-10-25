@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#101619">
   <meta name="description" content="Turn a crypto strategy into explicit rules and a reproducible historical backtest.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://generativelanguage.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="same-origin">
   <title>Crypto Strategy Lab — Research workspace</title>
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.mjs"></script>
@@ -23,7 +25,7 @@
   </aside>
 
   <div class="workspace">
-    <header class="topbar"><span><span class="topbar-muted">Workspace</span><span class="breadcrumb-slash">/</span><span id="page-crumb">Research</span></span><span class="topbar-right"><span class="status-dot" aria-hidden="true"></span>Historical research<span class="version">v0.1</span></span></header>
+    <header class="topbar"><span><span class="topbar-muted">Workspace</span><span class="breadcrumb-slash">/</span><span id="page-crumb">Research</span></span><span class="topbar-right"><span class="status-dot" aria-hidden="true"></span>Historical research<span class="version">v0.2</span></span></header>
     <main id="main" tabindex="-1">
       <section id="research-view" aria-labelledby="research-title">
         <div class="page-heading"><div><p class="eyebrow">FROM THESIS TO EVIDENCE</p><h1 id="research-title">Test the idea. Inspect the result.</h1><p class="page-description">A small strategy lab for questions worth testing.</p></div><span class="heading-tag">BTC + ETH <span>·</span> DAILY CANDLES</span></div>
@@ -33,9 +35,25 @@
           <section class="strategy-panel panel" aria-labelledby="strategy-title">
             <div class="panel-heading"><div><p class="eyebrow">01 / STRATEGY</p><h2 id="strategy-title">What’s your hypothesis?</h2></div><span class="draft-tag" id="draft-label">DRAFT</span></div>
             <form id="strategy-form">
+              <div class="connection-settings">
+                <label class="field-label" for="interpreter">Interpret strategy with</label>
+                <select id="interpreter" name="interpreter"><option value="rules">Free rule parser</option><option value="gemini">Gemini · your API key</option><option value="agent">Your local agent · Claude Code / Codex</option></select>
+                <div id="gemini-settings" class="connection-fields" hidden>
+                  <label class="field-label" for="gemini-key">Gemini API key</label>
+                  <input id="gemini-key" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="256" aria-describedby="key-privacy" placeholder="Kept only in this tab">
+                  <div class="connection-actions"><button id="clear-key" class="text-button" type="button">Clear key</button><a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer">Get a Gemini key ↗</a></div>
+                  <label class="field-label" for="gemini-model">Gemini model</label><input id="gemini-model" type="text" autocomplete="off" spellcheck="false" maxlength="100">
+                  <p class="field-help" id="key-privacy">Review sends your strategy directly to Google using your key. Charges apply to your account. The app does not save your key; browser scripts or extensions can access keys entered here. Clear it when finished.</p>
+                </div>
+                <div id="agent-settings" class="connection-fields" hidden>
+                  <p class="field-help">Use your own Claude Code or Codex with the local MCP tools. Prepare a task here, let your agent interpret it, then import its result for review.</p>
+                  <details class="agent-setup"><summary>Set up the local connection</summary><p>In the source checkout, run <code>npm install --ignore-scripts</code>. Add the MCP server to your agent using an absolute path to <code>agent/server.mjs</code>:</p><pre>claude mcp add --transport stdio crypto-strategy-lab -- node /absolute/path/crypto-strategy-lab/agent/server.mjs
+codex mcp add crypto-strategy-lab -- node /absolute/path/crypto-strategy-lab/agent/server.mjs</pre><p>Ask your agent to read the downloaded task and return a result using <code>prepare_web_result</code>. The local tools validate rules and run tests on bundled data. Save only its result envelope as JSON.</p></details>
+                </div>
+              </div>
               <label class="field-label" for="prompt">Describe your entry and exit rules</label>
-              <textarea id="prompt" name="prompt" rows="5" maxlength="1000" required spellcheck="false">Buy BTC when its 10-day moving average crosses above its 30-day moving average; sell on the reverse cross.</textarea>
-              <p class="field-help">Use an example; edit its asset, periods, or thresholds.<br>Deterministic rule parser · no AI model connected.</p>
+              <textarea id="prompt" name="prompt" rows="5" maxlength="2000" required spellcheck="false">Buy BTC when its 10-day moving average crosses above its 30-day moving average; sell on the reverse cross.</textarea>
+              <p class="field-help" id="interpreter-help">Use an example; edit its asset, periods, or thresholds. No external model request.</p>
               <div class="examples" aria-label="Example strategies"><span>TRY A RULE</span><button type="button" data-example="sma">MA crossover <span aria-hidden="true">↗</span></button><button type="button" data-example="rsi">RSI thresholds <span aria-hidden="true">↗</span></button><button type="button" data-example="hold">Buy &amp; hold <span aria-hidden="true">↗</span></button></div>
 
               <div class="settings-heading"><h3>Test conditions</h3><span>Spot · Long only</span></div>
@@ -50,11 +68,21 @@
               </div>
               <div class="data-status" id="data-status" role="status"><span class="status-dot loading" aria-hidden="true"></span><span id="data-status-text">Loading historical dataset…</span><button id="retry-data" type="button" hidden>Retry</button></div>
               <button id="review-button" type="submit" class="button primary" disabled>Review strategy <span aria-hidden="true">→</span></button>
+              <button id="cancel-interpretation" class="text-button" type="button" hidden>Cancel interpretation</button>
+              <section id="agent-exchange" class="agent-exchange" aria-labelledby="agent-exchange-title" hidden>
+                <h3 id="agent-exchange-title">Local agent handoff</h3>
+                <p class="field-help" id="agent-task-status"></p>
+                <button id="download-agent-task" type="button" class="button secondary">Download task JSON ↓</button>
+                <label class="field-label" for="agent-result-file">Import the agent’s result JSON</label><input id="agent-result-file" type="file" accept=".json,application/json">
+                <label class="field-label" for="agent-result">Or paste its result envelope</label><textarea id="agent-result" rows="4" maxlength="16384" spellcheck="false" placeholder="Paste the JSON returned by prepare_web_result"></textarea>
+                <button id="review-agent-result" type="button" class="button secondary">Review agent result →</button>
+              </section>
               <div id="form-error" class="inline-error" role="alert" hidden></div>
             </form>
             <section class="review-box" id="review-box" aria-labelledby="review-title" hidden>
               <div class="review-heading"><h3 id="review-title">Review the exact rules</h3><span>READY TO TEST</span></div>
               <p id="rule-summary"></p><dl id="rule-details" class="rule-details"></dl>
+              <p id="interpretation-warning" class="field-help" hidden>Compare these rules with your original request. AI and agents can omit or misinterpret conditions; validation checks the supported rule format, not the meaning of every word.</p>
               <p class="field-help">Indicator signals use completed closes and fill at the next daily open. Buy-and-hold enters at the first test open. Costs apply to both sides.</p>
               <button class="button primary" id="run-button" type="button">Run backtest <span aria-hidden="true">↗</span></button>
             </section>
@@ -84,7 +112,7 @@
 
       <section id="methodology-view" aria-labelledby="methodology-title" hidden>
         <div class="page-heading"><div><p class="eyebrow">HOW THIS LAB WORKS</p><h1 id="methodology-title">Know what you’re testing.</h1><p class="page-description">The assumptions are part of the result.</p></div></div>
-        <div class="methodology-content panel"><section><span class="method-number">01</span><div><h2>Explicit, supported rules</h2><p>The first release recognizes moving average crossovers, RSI entry and exit thresholds, and buy-and-hold for BTC / USDT and ETH / USDT. A deterministic parser translates the prompt; no language model writes or executes code. Review the interpreted rules before every run.</p></div></section><section><span class="method-number">02</span><div><h2>Historical data with a fingerprint</h2><p>Tests use the bundled daily candle datasets. The Evidence tab records the source, date range, and SHA-256 fingerprint of the actual dataset. Changing data can change results; a remix link carries settings and requires a fresh run.</p></div></section><section><span class="method-number">03</span><div><h2>Signals now. Execution next bar.</h2><p>Indicators use completed daily closes. A signal fills at the next available daily open. Fees apply to each side; slippage moves the execution price against the trade. Positions are long only, use the selected fraction of cash, and close at the final test close. No leverage, shorts, or perpetual funding.</p></div></section><section><span class="method-number">04</span><div><h2>Count the costs and the losses</h2><p>Returns and trade wins are measured after fees. Drawdown measures the largest decline from a prior equity peak. Buy-and-hold provides a comparison with the same trading costs and capital allocation. A short period or a small number of trades provides limited evidence.</p></div></section><section><span class="method-number">05</span><div><h2>A test, not a forecast</h2><p>The simulation cannot reproduce order book liquidity, outages, market impact, taxes, or your actual fills. Trying many settings on the same period can overfit the past. This version does not optimize parameters, connect a wallet, place orders, or establish that a strategy will be profitable.</p></div></section><button type="button" id="back-research" class="button secondary">Back to research <span aria-hidden="true">→</span></button></div>
+        <div class="methodology-content panel"><section><span class="method-number">01</span><div><h2>Explicit, supported rules</h2><p>The first release recognizes moving average crossovers, RSI entry and exit thresholds, and buy-and-hold for BTC / USDT and ETH / USDT. Choose the free parser, connect your own Gemini key, or exchange a task with your local agent. AI and agents propose rules; the app validates their format. Compare the rules with your original request before every run because a model can omit or misinterpret a condition. No generated code is executed.</p></div></section><section><span class="method-number">02</span><div><h2>Historical data with a fingerprint</h2><p>Tests use the bundled daily candle datasets. The Evidence tab records the source, date range, and SHA-256 fingerprint of the actual dataset. Changing data can change results; a remix link carries settings and requires a fresh run.</p></div></section><section><span class="method-number">03</span><div><h2>Signals now. Execution next bar.</h2><p>Indicators use completed daily closes. A signal fills at the next available daily open. Fees apply to each side; slippage moves the execution price against the trade. Positions are long only, use the selected fraction of cash, and close at the final test close. No leverage, shorts, or perpetual funding.</p></div></section><section><span class="method-number">04</span><div><h2>Count the costs and the losses</h2><p>Returns and trade wins are measured after fees. Drawdown measures the largest decline from a prior equity peak. Buy-and-hold provides a comparison with the same trading costs and capital allocation. A short period or a small number of trades provides limited evidence.</p></div></section><section><span class="method-number">05</span><div><h2>A test, not a forecast</h2><p>The simulation cannot reproduce order book liquidity, outages, market impact, taxes, or your actual fills. Trying many settings on the same period can overfit the past. This version does not optimize parameters, connect a wallet, place orders, or establish that a strategy will be profitable.</p></div></section><button type="button" id="back-research" class="button secondary">Back to research <span aria-hidden="true">→</span></button></div>
       </section>
     </main>
   </div>
