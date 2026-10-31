@@ -1,23 +1,34 @@
+Crypto Strategy Lab is a browser workbench for reviewing and backtesting bounded BTC/ETH spot strategies.\
+It demonstrates a control pattern relevant to agent payments: an agent proposes, a human reviews, then the app runs a historical backtest; payments are not implemented.\
+Try the [live demo](https://crypto-strategy-lab.lilacclove129.chatgpt.site) or [run locally](#run-locally) with Node.js 22+.
+
 # Crypto Strategy Lab
 
-A focused spot-strategy research workbench: describe a supported rule, inspect exactly what it means, run a historical test, and export a reproducible result.
+Describe a supported rule, inspect exactly what it means, run a historical test, and export a reproducible result.
+
+[![Verified Codex task/result handoff, reviewed ETH RSI rules, and completed historical backtest](docs/demo-screenshot.jpg)](https://crypto-strategy-lab.lilacclove129.chatgpt.site)
+
+The screenshot shows the verified Codex handoff and reviewed ETH RSI backtest from 31 October 2026. It contains no API key field. This is historical research, not a profitability claim.
 
 ## Run locally
 
-Requires Node.js 22 or newer. The free browser parser/backtest needs no package installation or API key. The optional local MCP server needs `npm ci --ignore-scripts`.
+Requires Node.js 22 or newer:
 
-```text
+```sh
+git clone https://github.com/satwiksharma01/crypto-strategy-lab.git
+cd crypto-strategy-lab
+npm ci --ignore-scripts
 npm start
 ```
 
-Open http://127.0.0.1:4321. The server binds only to loopback.
+Open [http://127.0.0.1:4321](http://127.0.0.1:4321). The server binds only to loopback. The free rule parser and browser backtest need no API key.
 
-```text
+```sh
 npm test
 npm run build
 ```
 
-`public/` is the static source. `npm run build` verifies the assets, snapshot hashes, and real-data execution, then copies the site to `dist/` without bundling dependencies.
+`public/` is the static source. The build verifies assets, snapshot hashes, and real-data execution, then copies the site to `dist/`. The optional local MCP server uses the installed dependencies.
 
 ## Supported rules
 
@@ -29,7 +40,7 @@ Buy ETH when RSI(14) is below 30; sell when RSI is above 70.
 Buy and hold BTC.
 ```
 
-Only BTC/ETH spot, long or cash. Extra conditions are rejected rather than silently ignored. RSI entries/exits use the completed RSI level below/above the reviewed thresholds; SMA entries/exits require actual crosses.
+Only BTC/ETH spot, long or cash, on fixed 2025 daily data. Extra conditions are rejected rather than silently ignored. RSI entries/exits use the completed RSI level below/above the reviewed thresholds; SMA entries/exits require actual crosses. There is no shorting, leverage, stop loss, user data feed, or live execution.
 
 ## Bring your own key or agent
 
@@ -37,7 +48,7 @@ Choose **Gemini · your API key** to interpret flexible descriptions into the sa
 
 One review click makes one bounded request with a 30-second timeout and no automatic retry. Unsupported or ambiguous strategies must reject; the app validates the returned rule object and still requires human review. Structured output cannot prove that a model preserved every requested condition. Neither the model nor an agent executes generated code.
 
-For **Claude Code or Codex**, use the [local MCP setup](docs/local-agent.md). Four stdio tools expose capabilities, validation, fixed-data backtests, and result preparation. The browser exports a versioned task and imports the matching agent result as JSON; it does not connect to a local HTTP port. Your agent uses its existing model account. A CLI agent's authenticated model session has not been exercised by the automated protocol tests.
+For **Claude Code or Codex**, follow the [local MCP setup](docs/local-agent.md). Four stdio tools expose capabilities, validation, fixed-data backtests, and result preparation. The browser exports a versioned task JSON file and imports its matching result JSON. The agent proposes a supported strategy; the human reviews the exact rules and explicitly runs the browser backtest. Your agent uses its existing model account. There is no local HTTP listener, wallet connection, payment, or live order.
 
 For a live development check, copy `.env.example` to the ignored `.env.local`, add your `GEMINI_API_KEY` there, then run:
 
@@ -45,9 +56,27 @@ For a live development check, copy `.env.example` to the ignored `.env.local`, a
 npm run check:gemini
 ```
 
-This makes two real Gemini requests (supported SMA and unsupported stop-loss rejection). It prints no keys or raw responses. Never place a developer key in `public/` or deploy it as a shared demo key. No development key was available during initial integration, so mocked adapter tests are separate from live Gemini verification.
+This makes two real Gemini requests: a supported SMA rule and an unsupported stop-loss rejection. It prints no keys or raw responses. Never place a developer key in `public/` or deploy a shared demo key. Live Gemini interpretation and browser review/backtest were verified on 31 October 2026; mocked adapter tests remain a separate check.
 
 Contract and API references: [agent result contract](docs/agent-contract.md), [Google structured output](https://ai.google.dev/gemini-api/docs/structured-output), [Gemini keys](https://ai.google.dev/gemini-api/docs/api-key).
+
+## Agent verification
+
+An authenticated **Codex CLI 0.164.0-alpha.11.1** session using its saved ChatGPT connection completed the task/result workflow on **31 October 2026**. The model name was unreported. Condensed transcript of the observed run:
+
+```text
+Task: Use daily ETH spot candles. Enter when Wilder RSI(14) is below 30;
+      exit when it is above 70. Stay in cash otherwise.
+MCP:  strategy_capabilities → validate_strategy → run_backtest → prepare_web_result
+      All four calls completed, error=null; turn.completed, exit code 0.
+Result: complete; {"type":"rsi","symbol":"ETHUSDT","period":14,"entry":30,"exit":70}; issues=[]
+Browser QA: import actual result file → review thresholds/costs → explicit Run backtest.
+Browser result: 8,865.08 USDT from 10,000; -11.35%; 2 completed trades.
+```
+
+The MCP backtest was preliminary research; the browser run followed explicit rule review. Separate automated MCP tests cover protocol integration without model authentication. Claude Code setup is documented and uses the same protocol; its authenticated run remains unverified because the attempted session hit a provider credit limit.
+
+A user also reported the free-parser flow working on a physical phone; the exported BTC result matched an independent engine rerun. Handset and browser were unreported. See the [verification record](docs/mvp-verification.md) for the run settings, data hashes, and limits.
 
 ## Execution and metrics
 
@@ -59,7 +88,9 @@ Net return reconciles with equity and the trade ledger. Net win rate includes bo
 
 Fixed 2025 BTCUSDT and ETHUSDT daily snapshots from [Binance Public Data](https://github.com/binance/binance-public-data). The fetch script verifies the provider's SHA-256 for each of 24 monthly ZIP archives. Each normalized JSON file has its own SHA-256 in `public/data/manifest.json`; the UI checks that identity before use.
 
-Public availability and checksum identity are not independent price verification or an endorsement. Quotes and capital are in **USDT**, whose USD value can vary. This is historical research, not a live data feed or trading system. Review data terms for any broader commercial redistribution.
+Public availability and checksum identity are not independent price verification or an endorsement. Quotes and capital are in **USDT**, whose USD value can vary. This is historical research, not a live data feed or trading system.
+
+The bundled `public/data/` snapshots are **excluded from MIT**. Binance supplies them under **CC BY-NC-SA 4.0** and its [Vision Dataset Terms](https://github.com/binance/binance-public-data/blob/master/TERMS_AND_CONDITIONS.md): attribution, noncommercial use, and share-alike obligations apply. See [data attribution and normalization notice](DATA_LICENSE.md). Commercial deployment needs appropriately licensed data; the software license does not grant that permission.
 
 Regenerate the same fixed year (network required):
 
@@ -71,8 +102,8 @@ python scripts/fetch-market-data.py
 
 Run results stay in your browser. JSON exports carry strategy, assumptions, data identity, and computed results. Remix links carry inputs only and require a new review and run; they are not permanently stored public performance reports. Export hashes identify bytes, not third-party certification of the model or data.
 
-## Project status and boundaries
+## Project boundaries and license
 
-This slice includes Gemini BYOK interpretation and a local MCP agent handoff around the supported strategy types. Accounts, durable report hosting, payments, leverage, and live execution are not implemented. The public GitHub repository destination and release license remain to be selected; this local source directory does not imply a published open-source release.
+The MVP includes a free rule parser, Gemini BYOK interpretation, and local MCP task/result handoff around three supported strategy types. Accounts, durable report hosting, agent payments, paid tiers, leverage, and live execution are not implemented. Your provider bills any connected model use; this app does not enforce an account-wide provider budget.
 
-The engine here is original spot code. No Vibe-Trading implementation was copied or relabeled. Upstream research informed next-bar/accounting checks and reporting requirements; preserve applicable licenses if upstream code is incorporated later. Product rationale and handoff notes live in the project's Obsidian vault.
+Original software is available under the [MIT License](LICENSE), copyright 2026 Satwik Sharma. The engine is original spot code; no Vibe-Trading implementation was copied or relabeled. Upstream research informed next-bar/accounting checks and reporting requirements. Preserve source attribution and any applicable licenses if incorporating upstream code later. Bundled market data is separately licensed as described in [DATA_LICENSE.md](DATA_LICENSE.md).
