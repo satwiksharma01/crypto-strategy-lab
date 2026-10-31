@@ -71,6 +71,8 @@ Separately, browser QA at a requested **375 × 812 px viewport** completed the f
 
 ## Reproduce the project checks
 
+Git preserves the historical snapshot JSON bytes through `.gitattributes`. A Windows fresh-clone check exposed automatic LF-to-CRLF conversion; the byte-preservation rule fixes the checkout behavior while retaining the original dataset hashes and integrity checks.
+
 With Node.js 22+:
 
 ```sh

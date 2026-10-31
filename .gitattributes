@@ -1,0 +1,2 @@
+# Snapshot fingerprints identify exact bytes; Git must not convert their line endings.
+public/data/*-1d-*.json -text
