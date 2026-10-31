@@ -1,12 +1,12 @@
 Crypto Strategy Lab is a browser workbench for reviewing and backtesting bounded BTC/ETH spot strategies.\
 It demonstrates a control pattern relevant to agent payments: an agent proposes, a human reviews, then the app runs a historical backtest; payments are not implemented.\
-Try the [live demo](https://crypto-strategy-lab.lilacclove129.chatgpt.site) or [run locally](#run-locally) with Node.js 22+.
+Try the [live demo](https://crypto-strategy-lab.meehikaksharma0807.chatgpt.site) or [run locally](#run-locally) with Node.js 22+.
 
 # Crypto Strategy Lab
 
 Describe a supported rule, inspect exactly what it means, run a historical test, and export a reproducible result.
 
-[![Verified Codex task/result handoff, reviewed ETH RSI rules, and completed historical backtest](docs/demo-screenshot.jpg)](https://crypto-strategy-lab.lilacclove129.chatgpt.site)
+[![Verified Codex task/result handoff, reviewed ETH RSI rules, and completed historical backtest](docs/demo-screenshot.jpg)](https://crypto-strategy-lab.meehikaksharma0807.chatgpt.site)
 
 The screenshot shows the verified Codex handoff and reviewed ETH RSI backtest from 31 October 2026. It contains no API key field. This is historical research, not a profitability claim.
 
