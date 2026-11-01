@@ -1,12 +1,12 @@
 Crypto Strategy Lab is a browser workbench for reviewing and backtesting bounded BTC/ETH spot strategies.\
 It demonstrates a control pattern relevant to agent payments: an agent proposes, a human reviews, then the app runs a historical backtest; payments are not implemented.\
-Try the [live demo](https://crypto-strategy-lab.meehikaksharma0807.chatgpt.site) or [run locally](#run-locally) with Node.js 22+.
+Try the [live demo](https://satwiksharma01.github.io/crypto-strategy-lab/) or [run locally](#run-locally) with Node.js 22+.
 
 # Crypto Strategy Lab
 
 Describe a supported rule, inspect exactly what it means, run a historical test, and export a reproducible result.
 
-[![Verified Codex task/result handoff, reviewed ETH RSI rules, and completed historical backtest](docs/demo-screenshot.jpg)](https://crypto-strategy-lab.meehikaksharma0807.chatgpt.site)
+[![Verified Codex task/result handoff, reviewed ETH RSI rules, and completed historical backtest](docs/demo-screenshot.jpg)](https://satwiksharma01.github.io/crypto-strategy-lab/)
 
 The screenshot shows the verified Codex handoff and reviewed ETH RSI backtest from 31 October 2026. It contains no API key field. This is historical research, not a profitability claim.
 
@@ -29,6 +29,12 @@ npm run build
 ```
 
 `public/` is the static source. The build verifies assets, snapshot hashes, and real-data execution, then copies the site to `dist/`. The optional local MCP server uses the installed dependencies.
+
+## Demo hosting
+
+The demo is hosted on [GitHub Pages](https://satwiksharma01.github.io/crypto-strategy-lab/). The [deployment workflow](.github/workflows/pages.yml) installs locked dependencies with scripts disabled, runs the tests, and builds the static site before publishing `dist/`. Pull requests run the same checks without deploying; pushes to `main` deploy automatically. No API keys or server credentials are included in the deployment.
+
+For a fork, enable **Settings → Pages → Build and deployment → GitHub Actions**, then run the workflow or push to `main`. Assets and dataset requests use relative paths so the demo works under a repository subpath. To roll back a broken deployment, revert the responsible commit and push the revert to `main`.
 
 ## Supported rules
 
