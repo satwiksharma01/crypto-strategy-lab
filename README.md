@@ -6,9 +6,9 @@ Try the [live demo](https://satwiksharma01.github.io/crypto-strategy-lab/) or [r
 
 Describe a supported rule, inspect exactly what it means, run a historical test, and export a reproducible result.
 
-[![Verified Codex task/result handoff, reviewed ETH RSI rules, and completed historical backtest](docs/demo-screenshot.jpg)](https://satwiksharma01.github.io/crypto-strategy-lab/)
+[![Dark research workspace with a completed ETH RSI historical backtest](docs/workspace-screenshot.jpg)](https://satwiksharma01.github.io/crypto-strategy-lab/)
 
-The screenshot shows the verified Codex handoff and reviewed ETH RSI backtest from 31 October 2026. It contains no API key field. This is historical research, not a profitability claim.
+The screenshot shows the refined workspace and an ETH RSI backtest from 3 November 2026. The earlier [authenticated Codex handoff screenshot](docs/demo-screenshot.jpg) remains available with its verification record below. Both show historical research, not a profitability claim.
 
 ## Run locally
 

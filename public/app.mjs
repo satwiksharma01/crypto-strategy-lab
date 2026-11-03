@@ -31,6 +31,7 @@ function notice(message, error = false) {
 function formError(message = '') {
   $('form-error').textContent = message;
   $('form-error').hidden = !message;
+  if (message) $('form-error').focus();
 }
 
 function invalidate(keepAgentTask = false) {
@@ -177,7 +178,7 @@ function showReview(interpreted) {
     $('draft-label').textContent = 'REVIEWED';
     $('draft-label').classList.add('reviewed');
     $('run-button').disabled = false;
-    $('run-button').focus();
+    $('review-title').focus();
 }
 
 function interpretationLabel(provenance) {
@@ -187,7 +188,7 @@ function interpretationLabel(provenance) {
 function setInterpreting(pending) {
   $('strategy-form').setAttribute('aria-busy', String(pending));
   $('review-button').disabled = pending || !dataset;
-  $('review-button').textContent = pending ? 'Interpreting with Gemini…' : $('interpreter').value === 'agent' ? 'Prepare local agent task →' : 'Review strategy →';
+  $('review-button').textContent = pending ? 'Interpreting with Gemini…' : $('interpreter').value === 'agent' ? 'Prepare local agent task' : 'Review strategy';
   $('cancel-interpretation').hidden = !pending;
 }
 
@@ -229,20 +230,21 @@ async function runReviewed() {
   $('run-button').textContent = 'Running historical test…';
   $('report-status').textContent = 'CALCULATING';
   formError();
-  await new Promise(resolve => setTimeout(resolve, 20));
+  await new Promise(requestAnimationFrame);
   try {
     if (current.revision !== revision) return;
     const result = runBacktest(dataset.candles, current.spec, current.options);
     lastRun = { result, spec: current.spec, options: current.options, interpretation: current.interpretation, dataset: { symbol: dataset.symbol, interval: dataset.interval, source: dataset.source || datasetMeta.source, start: date(dataset.candles[0].time), end: date(dataset.candles.at(-1).time), bars: dataset.candles.length, sha256: datasetHash } };
     renderReport(lastRun);
     notice('Backtest complete. Inspect the equity curve, completed trades, and execution assumptions.');
-    if (matchMedia('(max-width: 1000px)').matches) $('report-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('report-title').focus({ preventScroll: true });
+    $('report-title').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
   } catch (error) {
     formError(error.message);
     $('report-status').textContent = 'TEST FAILED';
   } finally {
     $('run-button').disabled = false;
-    $('run-button').replaceChildren(document.createTextNode('Run backtest '), node('span', '↗'));
+    $('run-button').textContent = 'Run backtest';
   }
 }
 
@@ -269,14 +271,15 @@ function renderReport(run) {
   renderMetric('Completed trades', String(metrics.tradeCount), `${result.period.bars} daily bars in test`);
   renderMetric('Trading fees', `${money(metrics.totalFees)}`, 'USDT · slippage included in fills');
   $('trade-count').textContent = metrics.tradeCount;
-  drawChart(result.equity);
   renderTrades(result.trades);
   renderEvidence(run);
   selectReportTab('equity', false);
 }
 
 function drawChart(points) {
-  const NS = 'http://www.w3.org/2000/svg', width = 620, height = 280, left = 55, right = 12, top = 12, bottom = 34;
+  const width = Math.round($('equity-chart').getBoundingClientRect().width);
+  if (!width) return;
+  const NS = 'http://www.w3.org/2000/svg', height = width < 400 ? 230 : 280, left = 48, right = 12, top = 12, bottom = 34;
   const svg = document.createElementNS(NS, 'svg');
   const values = points.flatMap(point => [point.equity, point.benchmark]);
   const low = Math.min(...values), high = Math.max(...values), padding = (high - low || high * .05 || 1) * .12;
@@ -295,11 +298,12 @@ function drawChart(points) {
   for (let i = 0; i < 5; i++) {
     const value = min + (max - min) * i / 4, pos = y(value);
     element('line', { x1: left, x2: width - right, y1: pos, y2: pos, stroke: '#2a363b', 'stroke-width': 1 });
-    element('text', { x: left - 9, y: pos + 3, fill: '#86999f', 'font-size': 10, 'text-anchor': 'end', 'font-family': 'ui-monospace, monospace' }, new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(value));
+    element('text', { x: left - 9, y: pos + 4, fill: 'var(--muted)', 'font-size': 12, 'text-anchor': 'end', 'font-family': 'inherit' }, new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(value));
   }
-  for (let i = 0; i < 4; i++) {
-    const index = Math.round(i / 3 * (points.length - 1));
-    element('text', { x: x(index), y: height - 10, fill: '#86999f', 'font-size': 10, 'text-anchor': i === 0 ? 'start' : i === 3 ? 'end' : 'middle' }, new Date(points[index].time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }));
+  const dateTicks = width < 400 ? 3 : 4;
+  for (let i = 0; i < dateTicks; i++) {
+    const index = Math.round(i / (dateTicks - 1) * (points.length - 1));
+    element('text', { x: x(index), y: height - 10, fill: 'var(--muted)', 'font-size': 12, 'text-anchor': i === 0 ? 'start' : i === dateTicks - 1 ? 'end' : 'middle' }, new Date(points[index].time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }));
   }
   for (const [key, color, dashed] of [['benchmark', '#82969d', true], ['equity', '#b8e5cb', false]]) {
     const attributes = { d: points.map((point, index) => `${index ? 'L' : 'M'}${x(index).toFixed(2)},${y(point[key]).toFixed(2)}`).join(' '), stroke: color, 'stroke-width': 2, fill: 'none', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' };
@@ -356,6 +360,7 @@ function selectReportTab(name, focus = true) {
     $(`view-${key}`).hidden = key !== name;
   }
   if (focus) $(`tab-${name}`).focus();
+  if (name === 'equity' && lastRun) drawChart(lastRun.result.equity);
 }
 
 function navigate(page, focus = true) {
@@ -439,6 +444,21 @@ function restoreDraft() {
 }
 
 $('strategy-form').addEventListener('submit', reviewStrategy);
+$('strategy-form').addEventListener('invalid', event => {
+  if ($('execution-settings').contains(event.target)) $('execution-settings').open = true;
+}, true);
+function updateExecutionSummary() {
+  $('execution-summary').textContent = `${$('fee').value || '—'} bps fee · ${$('slippage').value || '—'} bps slippage · ${$('allocation').value || '—'}% allocation`;
+}
+for (const id of ['fee', 'slippage', 'allocation']) $(id).addEventListener('input', updateExecutionSummary);
+let chartWidth = 0;
+new ResizeObserver(entries => {
+  const width = Math.round(entries[0].contentRect.width);
+  if (width && width !== chartWidth) {
+    chartWidth = width;
+    if (lastRun) drawChart(lastRun.result.equity);
+  }
+}).observe($('equity-chart'));
 $('gemini-model').value = DEFAULT_GEMINI_MODEL;
 $('interpreter').addEventListener('change', updateConnection);
 for (const id of ['gemini-key', 'gemini-model']) $(id).addEventListener('input', invalidate);
@@ -492,4 +512,5 @@ for (const key of tabs) {
 $('export-button').addEventListener('click', exportEvidence);
 $('share-button').addEventListener('click', shareRun);
 restoreDraft();
+updateExecutionSummary();
 loadDataset();
